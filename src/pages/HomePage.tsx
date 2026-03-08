@@ -303,8 +303,8 @@ export default function HomePage() {
                 )}
                 <h3 className="font-heading font-bold text-lg mb-1">{plan.name}</h3>
                 <div className="flex items-baseline gap-1 mb-6">
-                  <span className="text-3xl font-heading font-bold text-accent">KSh {plan.price}</span>
-                  <span className={`text-sm ${plan.popular ? "text-hero-foreground/60" : "text-muted-foreground"}`}>/year</span>
+                    <span className="text-3xl font-heading font-bold text-accent">KSh {plan.price}</span>
+                    <span className={`text-sm ${plan.popular ? "text-hero-foreground/60" : "text-muted-foreground"}`}>{plan.period}</span>
                 </div>
                 <ul className="space-y-3 mb-8">
                   {plan.features.map((f) => (
