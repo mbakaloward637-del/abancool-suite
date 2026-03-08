@@ -283,9 +283,9 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-0 max-w-4xl mx-auto border border-border">
             {[
-              { name: "Starter", price: "500", features: ["5GB SSD", "20GB Bandwidth", "Free SSL", "5 Emails"] },
-              { name: "Business", price: "1,500", features: ["20GB SSD", "Unlimited BW", "Free SSL", "Unlimited Emails"], popular: true },
-              { name: "Professional", price: "3,000", features: ["50GB SSD", "Unlimited BW", "Daily Backups", "10 Websites"] },
+              { name: "Starter", price: "420", period: "/mo", features: ["2GB SSD", "10GB Bandwidth", "Free SSL", "2 Emails"] },
+              { name: "Business", price: "3,000", period: "/yr", features: ["15GB SSD", "Unlimited BW", "Free SSL", "Unlimited Emails"], popular: true },
+              { name: "Enterprise", price: "5,000", period: "/yr", features: ["60GB SSD", "Unlimited BW", "Daily Backups", "Unlimited Sites"] },
             ].map((plan, i) => (
               <motion.div
                 key={plan.name}
