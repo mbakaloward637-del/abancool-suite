@@ -161,7 +161,7 @@ export default function AIChatWidget() {
                 <div>
                   <h3 className="font-heading font-bold text-sm text-primary-foreground">Abancool AI</h3>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
                     <span className="text-[10px] text-primary-foreground/70">Online • Ready to help</span>
                   </div>
                 </div>
