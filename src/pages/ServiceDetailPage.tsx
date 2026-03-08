@@ -2,6 +2,7 @@ import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ArrowRight, Code, Cpu, GraduationCap, MessageSquare, CreditCard } from "lucide-react";
+import heroImg from "@/assets/hero-developers.jpg";
 
 const serviceData: Record<string, { icon: typeof Code; title: string; desc: string; features: string[]; details: string }> = {
   "web-development": {
@@ -58,39 +59,48 @@ export default function ServiceDetailPage() {
 
   return (
     <>
-      <section className="gradient-hero text-hero-foreground section-padding">
-        <div className="container-max text-center">
-          <div className="w-16 h-16 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-6">
-            <Icon className="w-8 h-8 text-primary-foreground" />
+      <section className="relative min-h-[50vh] flex items-center overflow-hidden">
+        <div className="absolute inset-0">
+          <img src={heroImg} alt={service.title} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-hero/75" />
+        </div>
+        <div className="relative container-max px-4 lg:px-8 py-20">
+          <div className="w-16 h-16 rounded-sm bg-accent/20 flex items-center justify-center mb-6">
+            <Icon className="w-8 h-8 text-accent" />
           </div>
-          <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4">{service.title}</h1>
-          <p className="text-lg opacity-80 max-w-2xl mx-auto">{service.desc}</p>
+          <span className="section-label !text-accent">Our Services</span>
+          <h1 className="font-heading text-4xl md:text-5xl font-extrabold text-hero-foreground">{service.title}</h1>
+          <p className="text-hero-foreground/70 text-lg max-w-2xl mt-4">{service.desc}</p>
         </div>
       </section>
 
       <section className="section-padding bg-background">
         <div className="container-max max-w-4xl">
-          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
             <p className="text-muted-foreground leading-relaxed mb-10 text-lg">{service.details}</p>
 
-            <h2 className="font-heading text-2xl font-bold mb-6">Key Features</h2>
+            <span className="section-label">Features</span>
+            <h2 className="font-heading text-2xl font-bold mb-6">Key <span className="text-accent">Features</span></h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-10">
               {service.features.map((f) => (
-                <div key={f} className="flex items-center gap-3 p-3 rounded-lg bg-card border">
-                  <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                <div key={f} className="flex items-center gap-3 p-4 bg-card border rounded-sm">
+                  <CheckCircle2 className="w-5 h-5 text-accent flex-shrink-0" />
                   <span className="text-sm font-medium">{f}</span>
                 </div>
               ))}
             </div>
 
-            <div className="rounded-xl gradient-hero text-hero-foreground p-8 text-center">
-              <h3 className="font-heading text-xl font-bold mb-2">Ready to get started?</h3>
-              <p className="opacity-80 mb-4 text-sm">Contact us for a free consultation and quote.</p>
-              <Link to="/contact">
-                <Button className="gradient-primary text-primary-foreground border-0">
-                  Get a Quote <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
+            <div className="relative overflow-hidden rounded-sm">
+              <div className="absolute inset-0 bg-hero" />
+              <div className="relative p-10 text-center">
+                <h3 className="font-heading text-xl font-bold text-hero-foreground mb-2">Ready to get started?</h3>
+                <p className="text-hero-foreground/60 mb-6 text-sm">Contact us for a free consultation and quote.</p>
+                <Link to="/contact">
+                  <Button className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-sm font-semibold uppercase text-xs tracking-wider px-8 h-11">
+                    Get a Quote <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
             </div>
           </motion.div>
         </div>
