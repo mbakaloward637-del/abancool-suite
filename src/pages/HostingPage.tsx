@@ -65,6 +65,41 @@ const fadeUp = {
 };
 
 export default function HostingPage() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleOrderNow = async (plan: typeof plans[0]) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Store selected plan in sessionStorage
+    sessionStorage.setItem("selected_hosting_plan", JSON.stringify(plan));
+    
+    if (!user) {
+      toast({ title: "Login required", description: "Please sign in or create an account to order a hosting plan." });
+      navigate("/client/login");
+      return;
+    }
+
+    // User is logged in — create invoice and redirect to payments
+    const price = plan.period === "month" 
+      ? parseInt(plan.price.replace(/,/g, "")) 
+      : parseInt(plan.price.replace(/,/g, ""));
+    const invoiceNumber = `INV-${Date.now().toString().slice(-8)}`;
+
+    await supabase.from("invoices").insert({
+      invoice_number: invoiceNumber,
+      user_id: user.id,
+      service_type: "hosting",
+      service_description: `${plan.name} Hosting Plan (${plan.period}ly)`,
+      amount: price,
+      status: "unpaid",
+      due_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+
+    toast({ title: "Order created!", description: "Redirecting to payment..." });
+    navigate("/client/dashboard/payments");
+  };
+
   return (
     <>
       {/* Hero */}
