@@ -165,7 +165,7 @@
 
   /* Project overlay */
   .project-card {
-    @apply relative overflow-hidden group cursor-pointer;
+    @apply relative overflow-hidden cursor-pointer;
   }
   .project-card .project-overlay {
     @apply absolute inset-0 flex flex-col justify-end p-6 transition-all duration-500;
