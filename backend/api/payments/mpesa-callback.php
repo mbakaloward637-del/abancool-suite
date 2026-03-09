@@ -108,10 +108,30 @@ if ($resultCode == 0) {
             }
         }
     }
+    // Send payment confirmation email
+    try {
+        $profileStmt = db()->prepare("SELECT * FROM profiles WHERE id = :id");
+        $profileStmt->execute(['id' => $payment['user_id']]);
+        $profile = $profileStmt->fetch();
+
+        if ($profile && $profile['email']) {
+            $emailService = new EmailService();
+            $emailService->sendPaymentConfirmation(
+                $profile['email'],
+                $profile['name'] ?? 'Customer',
+                $amount,
+                $mpesaReceipt,
+                'mpesa'
+            );
+        }
+    } catch (Exception $e) {
+        appLog('Payment email failed: ' . $e->getMessage(), 'error');
+    }
 } else {
     // FAILED
     $updatePayment = db()->prepare("UPDATE payments SET status = 'failed' WHERE id = :id");
     $updatePayment->execute(['id' => $payment['id']]);
 }
 
+appLog("M-Pesa callback processed: {$checkoutRequestId}, result: {$resultCode}", 'info');
 jsonResponse(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);

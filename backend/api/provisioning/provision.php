@@ -140,6 +140,25 @@ if (env('WHMCS_URL') && env('WHMCS_API_IDENTIFIER')) {
     }
 }
 
+// Send provisioning email
+try {
+    $email = $order['user_email'] ?? '';
+    if ($email) {
+        $emailService = new EmailService();
+        $emailService->sendHostingProvisioned(
+            $email,
+            $order['user_name'] ?? 'Customer',
+            $domain,
+            $username,
+            $cpanelUrl
+        );
+    }
+} catch (Exception $e) {
+    appLog('Provisioning email failed: ' . $e->getMessage(), 'error');
+}
+
+appLog("Hosting provisioned: {$username}@{$domain} ({$panelType})", 'info');
+
 jsonResponse([
     'success'  => true,
     'username' => $username,
