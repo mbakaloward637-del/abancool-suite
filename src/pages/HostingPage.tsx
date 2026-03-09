@@ -106,7 +106,7 @@ export default function HostingPage() {
             Premium <span className="text-accent">Hosting</span> Plans
           </h1>
           <p className="text-hero-foreground/70 text-lg max-w-2xl mt-4">
-            Fast, secure, and reliable SSD hosting with 99.9% uptime. Starting from KSh 420/month. Ready for WHMCS backend integration.
+            Fast, secure, and reliable NVMe SSD hosting with LiteSpeed servers and 99.9% uptime. Starting from KSh 1,500/year.
           </p>
           <div className="flex flex-wrap gap-4 mt-8">
             <a href="#plans">
