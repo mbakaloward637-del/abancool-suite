@@ -1,9 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard, Loader2, Smartphone, Globe } from "lucide-react";
+import { CreditCard, Loader2, Smartphone, Globe, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+
+const API_BASE = "https://api.abancool.com";
+
+async function getAuthHeaders() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return {
+    Authorization: `Bearer ${session?.access_token ?? ""}`,
+    "Content-Type": "application/json",
+  };
+}
 
 export default function ClientPayments() {
   const [payments, setPayments] = useState<any[]>([]);
@@ -13,20 +23,44 @@ export default function ClientPayments() {
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "card">("mpesa");
   const [mpesaPhone, setMpesaPhone] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [polling, setPolling] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
 
+  const loadData = async () => {
+    const [paymentsRes, invoicesRes] = await Promise.all([
+      supabase.from("payments").select("*").order("created_at", { ascending: false }),
+      supabase.from("invoices").select("*").in("status", ["unpaid", "overdue"]).order("due_at"),
+    ]);
+    setPayments(paymentsRes.data || []);
+    setUnpaidInvoices(invoicesRes.data || []);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    async function load() {
-      const [paymentsRes, invoicesRes] = await Promise.all([
-        supabase.from("payments").select("*").order("created_at", { ascending: false }),
-        supabase.from("invoices").select("*").in("status", ["unpaid", "overdue"]).order("due_at"),
-      ]);
-      setPayments(paymentsRes.data || []);
-      setUnpaidInvoices(invoicesRes.data || []);
-      setLoading(false);
-    }
-    load();
+    loadData();
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
+
+  // Poll invoice status after M-Pesa STK push
+  const startPolling = (invoiceId: string) => {
+    setPolling(invoiceId);
+    let attempts = 0;
+    pollRef.current = setInterval(async () => {
+      attempts++;
+      const { data } = await supabase.from("invoices").select("status").eq("id", invoiceId).maybeSingle();
+      if (data?.status === "paid") {
+        if (pollRef.current) clearInterval(pollRef.current);
+        setPolling(null);
+        toast({ title: "Payment Confirmed!", description: "Your hosting is being activated." });
+        loadData();
+      } else if (attempts >= 24) {
+        // Stop after 2 minutes
+        if (pollRef.current) clearInterval(pollRef.current);
+        setPolling(null);
+      }
+    }, 5000);
+  };
 
   const handleMpesaPay = async (invoice: any) => {
     if (!mpesaPhone || mpesaPhone.length < 10) {
@@ -34,30 +68,60 @@ export default function ClientPayments() {
       return;
     }
     setProcessing(true);
-    // Create pending payment record
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE}/api/payments/mpesa`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ invoice_id: invoice.id, phone: mpesaPhone }),
+      });
+      const data = await res.json();
 
-    await supabase.from("payments").insert({
-      user_id: user.id,
-      invoice_id: invoice.id,
-      method: "mpesa",
-      amount: invoice.amount,
-      currency: "KES",
-      status: "pending",
-      reference: `STK-${Date.now()}`,
-    });
+      if (data.success) {
+        toast({
+          title: "STK Push Sent",
+          description: "Check your phone for the M-Pesa payment prompt.",
+        });
+        setPayingInvoice(null);
+        startPolling(invoice.id);
+      } else {
+        toast({ title: "Payment Failed", description: data.error || "Try again.", variant: "destructive" });
+      }
+    } catch (err) {
+      console.error("M-Pesa request failed:", err);
+      toast({ title: "Error", description: "Could not reach payment server.", variant: "destructive" });
+    } finally {
+      setProcessing(false);
+    }
+  };
 
-    setProcessing(false);
-    setPayingInvoice(null);
-    toast({
-      title: "STK Push Sent",
-      description: "Check your phone for the M-Pesa payment prompt. Payment will be confirmed automatically.",
-    });
+  const handleStripePay = async (invoice: any) => {
+    setProcessing(true);
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE}/api/payments/stripe/intent`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ invoice_id: invoice.id }),
+      });
+      const data = await res.json();
 
-    // Refresh
-    const { data } = await supabase.from("payments").select("*").order("created_at", { ascending: false });
-    setPayments(data || []);
+      if (data.client_secret) {
+        // In a full implementation, use Stripe.js confirmCardPayment here
+        toast({
+          title: "Stripe Ready",
+          description: "Card payment form would appear here. Integration requires Stripe.js on frontend.",
+        });
+      } else {
+        toast({ title: "Payment Failed", description: data.error || "Try again.", variant: "destructive" });
+      }
+    } catch (err) {
+      console.error("Stripe request failed:", err);
+      toast({ title: "Error", description: "Could not reach payment server.", variant: "destructive" });
+    } finally {
+      setProcessing(false);
+      setPayingInvoice(null);
+    }
   };
 
   if (loading) {
@@ -99,26 +163,58 @@ export default function ClientPayments() {
                 <div>
                   <div className="font-medium">{inv.invoice_number}</div>
                   <div className="text-sm text-muted-foreground">{inv.service_description || inv.service_type}</div>
+                  {polling === inv.id && (
+                    <div className="flex items-center gap-1 mt-1 text-xs text-accent">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Waiting for M-Pesa confirmation...
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-4">
                   <span className="font-heading font-bold text-accent">KSh {Number(inv.amount).toLocaleString()}</span>
                   {payingInvoice?.id === inv.id ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        placeholder="0712345678"
-                        value={mpesaPhone}
-                        onChange={(e) => setMpesaPhone(e.target.value)}
-                        className="w-36 h-9 text-sm rounded-sm"
-                      />
-                      <Button size="sm" disabled={processing} onClick={() => handleMpesaPay(inv)}
-                        className="bg-accent text-accent-foreground hover:bg-accent/90 text-xs h-9">
-                        {processing ? <Loader2 className="w-3 h-3 animate-spin" /> : "Send STK"}
-                      </Button>
+                    <div className="space-y-2">
+                      {/* Method selector */}
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => setPaymentMethod("mpesa")}
+                          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${paymentMethod === "mpesa" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}
+                        >
+                          M-Pesa
+                        </button>
+                        <button
+                          onClick={() => setPaymentMethod("card")}
+                          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${paymentMethod === "card" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground"}`}
+                        >
+                          Card
+                        </button>
+                      </div>
+                      {paymentMethod === "mpesa" ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            placeholder="0712345678"
+                            value={mpesaPhone}
+                            onChange={(e) => setMpesaPhone(e.target.value)}
+                            className="w-36 h-9 text-sm rounded-sm"
+                          />
+                          <Button size="sm" disabled={processing} onClick={() => handleMpesaPay(inv)}
+                            className="bg-accent text-accent-foreground hover:bg-accent/90 text-xs h-9">
+                            {processing ? <Loader2 className="w-3 h-3 animate-spin" /> : "Send STK"}
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button size="sm" disabled={processing} onClick={() => handleStripePay(inv)}
+                          className="bg-accent text-accent-foreground hover:bg-accent/90 text-xs h-9">
+                          {processing ? <Loader2 className="w-3 h-3 animate-spin" /> : "Pay with Card"}
+                        </Button>
+                      )}
                       <Button size="sm" variant="ghost" onClick={() => setPayingInvoice(null)} className="text-xs h-9">Cancel</Button>
                     </div>
                   ) : (
                     <Button size="sm" onClick={() => { setPayingInvoice(inv); setPaymentMethod("mpesa"); }}
+                      disabled={polling === inv.id}
                       className="bg-accent text-accent-foreground hover:bg-accent/90 text-xs">
+                      {polling === inv.id ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
                       Pay Now
                     </Button>
                   )}
@@ -149,15 +245,18 @@ export default function ClientPayments() {
               <tr><td colSpan={5} className="p-6 text-center text-muted-foreground">No payments yet</td></tr>
             ) : payments.map((p: any) => (
               <tr key={p.id} className="border-b last:border-0">
-                <td className="p-3 font-medium">{p.reference || "—"}</td>
+                <td className="p-3 font-medium">{p.mpesa_receipt || p.reference || "—"}</td>
                 <td className="p-3 capitalize">{p.method}</td>
                 <td className="p-3 font-medium">KSh {Number(p.amount).toLocaleString()}</td>
                 <td className="p-3">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                     p.status === "completed" ? "bg-green-100 text-green-700" :
                     p.status === "pending" ? "bg-yellow-100 text-yellow-700" :
                     "bg-red-100 text-red-700"
-                  }`}>{p.status}</span>
+                  }`}>
+                    {p.status === "completed" && <CheckCircle className="w-3 h-3" />}
+                    {p.status}
+                  </span>
                 </td>
                 <td className="p-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
               </tr>
