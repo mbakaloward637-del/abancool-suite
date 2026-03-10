@@ -16,16 +16,19 @@ const HostingPage = lazy(() => import("./pages/HostingPage"));
 const DomainsPage = lazy(() => import("./pages/DomainsPage"));
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"));
 const ContactPage = lazy(() => import("./pages/ContactPage"));
+
+// Client Portal (WHMCS-powered)
 const ClientLoginPage = lazy(() => import("./pages/client/ClientLoginPage"));
-const ClientDashboardLayout = lazy(() => import("./pages/client/ClientDashboardLayout"));
+const ClientPortalLayout = lazy(() => import("./pages/client/ClientPortalLayout"));
 const DashboardOverview = lazy(() => import("./pages/client/DashboardOverview"));
-const ClientHosting = lazy(() => import("./pages/client/ClientHosting"));
+const ClientServices = lazy(() => import("./pages/client/ClientServices"));
 const ClientDomains = lazy(() => import("./pages/client/ClientDomains"));
-const ClientInvoices = lazy(() => import("./pages/client/ClientInvoices"));
-const ClientPayments = lazy(() => import("./pages/client/ClientPayments"));
-const ClientSupport = lazy(() => import("./pages/client/ClientSupport"));
-const ClientProfile = lazy(() => import("./pages/client/ClientProfile"));
-const ClientCpanel = lazy(() => import("./pages/client/ClientCpanel"));
+const ClientBilling = lazy(() => import("./pages/client/ClientBilling"));
+const ClientTickets = lazy(() => import("./pages/client/ClientTickets"));
+const ClientOrders = lazy(() => import("./pages/client/ClientOrders"));
+const ClientAccount = lazy(() => import("./pages/client/ClientAccount"));
+
+// Admin
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -65,17 +68,16 @@ const App = () => (
             <Route path="/portfolio" element={<Layout><PortfolioPage /></Layout>} />
             <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
 
-            {/* Client */}
+            {/* Client Portal (WHMCS) */}
             <Route path="/client/login" element={<ClientLoginPage />} />
-            <Route path="/client/dashboard" element={<ClientDashboardLayout />}>
-              <Route index element={<DashboardOverview />} />
-              <Route path="cpanel" element={<ClientCpanel />} />
-              <Route path="hosting" element={<ClientHosting />} />
+            <Route path="/client" element={<ClientPortalLayout />}>
+              <Route path="dashboard" element={<DashboardOverview />} />
+              <Route path="services" element={<ClientServices />} />
               <Route path="domains" element={<ClientDomains />} />
-              <Route path="invoices" element={<ClientInvoices />} />
-              <Route path="payments" element={<ClientPayments />} />
-              <Route path="support" element={<ClientSupport />} />
-              <Route path="profile" element={<ClientProfile />} />
+              <Route path="billing" element={<ClientBilling />} />
+              <Route path="tickets" element={<ClientTickets />} />
+              <Route path="orders" element={<ClientOrders />} />
+              <Route path="account" element={<ClientAccount />} />
             </Route>
 
             {/* Admin */}
