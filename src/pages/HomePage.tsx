@@ -184,7 +184,7 @@ function HostingPreview() {
   );
 }
 
-
+export default function HomePage() {
   return (
     <>
       {/* ═══════ HERO ═══════ */}
